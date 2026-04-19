@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CryptoLab — Cryptography Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=IBM+Plex+Mono:wght@400;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  --cream:#f5f0e8;
+  --parchment:#ede5d0;
+  --parchment2:#e4d9be;
+  --paper:#faf7f0;
+  --ink:#1a1a2e;
+  --ink2:#2d2d4a;
+  --ink3:#3d3d5c;
+  --navy:#0f2044;
+  --indigo:#1e3a6e;
+  --indigo2:#2a4d8f;
+  --amber:#c8860a;
+  --amber2:#e8a020;
+  --amber3:#ffc84a;
+  --copper:#b35a1f;
+  --copper2:#d4722a;
+  --rust:#8b2500;
+  --sage:#2d5a3d;
+  --sage2:#3d7a52;
+  --muted:#7a7060;
+  --muted2:#9a8f7a;
+  --border:#c8bfa8;
+  --border2:#b0a48a;
+  --shadow:rgba(26,26,46,0.12);
+  --shadow2:rgba(26,26,46,0.22);
+}
+
+html{
+  min-height:100%;
+  background-color:var(--cream);
+  background-image:
+    linear-gradient(rgba(200,175,120,0.18) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(200,175,120,0.18) 1px,transparent 1px),
+    radial-gradient(ellipse 80% 50% at 50% -10%,rgba(30,58,110,0.08) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 100%,rgba(200,134,10,0.06) 0%,transparent 60%);
+  background-size:32px 32px,32px 32px,100% 100%,100% 100%;
+}
+
+body{
+  font-family:'Crimson Pro',Georgia,serif;
+  font-size:16px;
+  color:var(--ink);
+  min-height:100vh;
+  overflow-x:hidden;
+  background:transparent;
+}
+
+/* subtle paper grain overlay */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;
+  z-index:0;
+  opacity:0.6;
+}
+
+/* LAYOUT */
+.container{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:40px 24px 100px;}
+
+/* HEADER */
+.header{margin-bottom:40px;animation:slideDown .7s cubic-bezier(.2,.8,.3,1) both;}
+.header-inner{
+  background:var(--navy);
+  padding:36px 40px 30px;
+  position:relative;
+  overflow:hidden;
+  border-radius:2px;
+  box-shadow:0 8px 32px var(--shadow2),4px 4px 0 var(--amber),8px 8px 0 rgba(200,134,10,0.2);
+}
+.header-inner::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(255,255,255,0.02) 60px,rgba(255,255,255,0.02) 61px),
+    repeating-linear-gradient(0deg,transparent,transparent 60px,rgba(255,255,255,0.02) 60px,rgba(255,255,255,0.02) 61px);
+}
+.header-inner::after{
+  content:'CRYPTOGRAPHIC LABORATORY';
+  position:absolute;
+  top:14px;right:24px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9px;
+  color:rgba(200,134,10,0.5);
+  letter-spacing:3px;
+}
+.header-stamp{
+  display:inline-block;
+  border:3px solid var(--amber);
+  border-radius:50%;
+  width:64px;height:64px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;
+  margin-bottom:16px;
+  box-shadow:0 0 0 6px rgba(200,134,10,0.15);
+  animation:rotateSlow 20s linear infinite;
+}
+@keyframes rotateSlow{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.header h1{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(28px,5vw,46px);
+  font-weight:900;
+  color:#fff;
+  line-height:1.1;
+  letter-spacing:-1px;
+  margin-bottom:8px;
+}
+.header h1 span{color:var(--amber2);}
+.header-sub{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  color:rgba(200,175,140,0.7);
+  letter-spacing:2px;
+  text-transform:uppercase;
+}
+.header-rule{
+  height:2px;
+  background:linear-gradient(90deg,var(--amber),transparent);
+  margin:16px 0 0;
+  opacity:0.6;
+}
+
+/* SECTION TABS */
+.section-nav{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:0;
+  margin-bottom:0;
+  border-bottom:none;
+}
+.sec-tab{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  font-weight:600;
+  padding:16px 12px 14px;
+  text-align:center;
+  cursor:pointer;
+  border:2px solid var(--border2);
+  border-bottom:none;
+  background:var(--parchment2);
+  color:var(--muted);
+  transition:all .18s;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  border-right:none;
+}
+.sec-tab:first-child{border-radius:6px 0 0 0;}
+.sec-tab:last-child{border-radius:0 6px 0 0;border-right:2px solid var(--border2);}
+.sec-tab:hover{background:var(--parchment);color:var(--ink2);}
+.sec-tab.active{
+  background:var(--paper);
+  color:var(--navy);
+  border-color:var(--indigo2);
+  border-bottom:2px solid var(--paper);
+  margin-bottom:-2px;
+  z-index:2;
+  position:relative;
+}
+.sec-tab-ico{font-size:20px;display:block;margin-bottom:4px;}
+
+/* SECTION PANELS */
+.section-panel{
+  display:none;
+  background:var(--paper);
+  border:2px solid var(--indigo2);
+  border-radius:0 0 8px 8px;
+  padding:0;
+  box-shadow:0 6px 24px var(--shadow),4px 4px 0 var(--border);
+  animation:fadeIn .3s ease both;
+}
+.section-panel.active{display:block;}
+
+/* ALGO TABS */
+.algo-nav{
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px;
+  padding:16px 20px 0;
+  background:var(--parchment);
+  border-bottom:1px solid var(--border);
+}
+.algo-tab{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  font-weight:600;
+  padding:8px 14px 7px;
+  cursor:pointer;
+  border:1px solid var(--border2);
+  border-bottom:none;
+  border-radius:4px 4px 0 0;
+  background:var(--parchment2);
+  color:var(--muted);
+  transition:all .12s;
+  letter-spacing:.5px;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.algo-tab:hover{background:var(--cream);color:var(--ink2);}
+.algo-tab.active{
+  background:var(--paper);
+  color:var(--indigo);
+  border-color:var(--indigo2);
+  border-bottom:1px solid var(--paper);
+  margin-bottom:-1px;
+}
+
+/* ALGO PANELS */
+.algo-panel{display:none;padding:28px 28px 32px;animation:fadeIn .25s ease both;}
+.algo-panel.active{display:block;}
+
+/* PANEL TITLE */
+.panel-title{
+  font-family:'Playfair Display',serif;
+  font-size:22px;
+  font-weight:700;
+  color:var(--navy);
+  margin-bottom:4px;
+  line-height:1.3;
+}
+.panel-subtitle{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  color:var(--amber);
+  letter-spacing:2px;
+  text-transform:uppercase;
+  margin-bottom:20px;
+}
+.divider{height:1px;background:linear-gradient(90deg,var(--indigo2),var(--border),transparent);margin:16px 0 20px;}
+
+/* INFO BOX */
+.bubble-info{
+  background:linear-gradient(135deg,rgba(30,58,110,0.06),rgba(200,134,10,0.04));
+  border:1px solid var(--border);
+  border-left:4px solid var(--indigo2);
+  border-radius:0 6px 6px 0;
+  padding:14px 18px;
+  font-family:'Crimson Pro',serif;
+  font-size:15px;
+  color:var(--ink3);
+  line-height:1.7;
+  margin-bottom:22px;
+}
+.bubble-info strong{color:var(--indigo);font-weight:600;}
+
+/* CONTROLS */
+.ctrl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
+@media(max-width:540px){.ctrl-grid{grid-template-columns:1fr 1fr;}}
+.ctrl-box{
+  background:var(--cream);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:12px 14px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.field-label{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  font-weight:600;
+  color:var(--indigo);
+  letter-spacing:.5px;
+  text-transform:uppercase;
+}
+select,.inp{
+  width:100%;
+  background:#fff;
+  border:1px solid var(--border2);
+  border-radius:3px;
+  color:var(--ink);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:15px;
+  padding:8px 10px;
+  outline:none;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,0.06);
+  appearance:none;
+  -webkit-appearance:none;
+  transition:border-color .15s,box-shadow .15s;
+}
+select:focus,.inp:focus{
+  border-color:var(--indigo2);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,0.06),0 0 0 3px rgba(30,58,110,0.1);
+}
+select option{background:#fff;color:var(--ink);}
+.inp-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;}
+.inp-row .inp{flex:1;min-width:140px;}
+.hint-txt{font-size:13px;color:var(--muted2);margin-bottom:4px;font-style:italic;}
+
+/* BUTTONS */
+.btn{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  font-weight:600;
+  padding:11px 20px;
+  border-radius:3px;
+  cursor:pointer;
+  letter-spacing:1px;
+  border:2px solid transparent;
+  display:inline-block;
+  white-space:nowrap;
+  transition:all .15s;
+  text-transform:uppercase;
+}
+.btn:hover{transform:translateY(-2px);}
+.btn:active{transform:translateY(1px);}
+.btn.primary{background:var(--navy);border-color:var(--navy);color:#fff;box-shadow:0 4px 0 rgba(15,32,68,0.4);}
+.btn.primary:hover{background:var(--indigo);border-color:var(--indigo);box-shadow:0 6px 0 rgba(15,32,68,0.3);}
+.btn.secondary{background:transparent;border-color:var(--indigo2);color:var(--indigo);box-shadow:0 4px 0 rgba(30,58,110,0.2);}
+.btn.secondary:hover{background:var(--indigo2);color:#fff;box-shadow:0 6px 0 rgba(30,58,110,0.2);}
+.btn.amber{background:var(--amber);border-color:var(--amber);color:#fff;box-shadow:0 4px 0 rgba(180,100,0,0.4);}
+.btn.amber:hover{background:var(--amber2);box-shadow:0 6px 0 rgba(180,100,0,0.3);}
+.btn.danger{background:var(--rust);border-color:var(--rust);color:#fff;box-shadow:0 4px 0 rgba(100,0,0,0.4);}
+.btn.sage{background:var(--sage);border-color:var(--sage);color:#fff;box-shadow:0 4px 0 rgba(30,70,40,0.4);}
+.btn.sage:hover{background:var(--sage2);box-shadow:0 6px 0 rgba(30,70,40,0.3);}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+
+/* STEP CARDS */
+.steps-log{display:flex;flex-direction:column;gap:10px;margin-top:18px;}
+.step-card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-left:4px solid var(--indigo2);
+  border-radius:0 4px 4px 0;
+  padding:14px 16px;
+  animation:fadeIn .3s ease both;
+  box-shadow:2px 2px 0 var(--shadow);
+}
+.step-card:nth-child(even){border-left-color:var(--amber);}
+.step-card:nth-child(3n){border-left-color:var(--sage2);}
+.step-card:nth-child(4n){border-left-color:var(--copper);}
+.step-n{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9px;
+  font-weight:600;
+  color:var(--muted2);
+  letter-spacing:1px;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+.step-title{
+  font-family:'Playfair Display',serif;
+  font-size:15px;
+  font-weight:700;
+  color:var(--navy);
+  margin-bottom:6px;
+  line-height:1.4;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.step-desc{
+  font-family:'Crimson Pro',serif;
+  font-size:14px;
+  color:var(--ink3);
+  line-height:1.7;
+  margin-bottom:8px;
+  white-space:pre-line;
+}
+.step-math{
+  background:var(--navy);
+  color:var(--amber3);
+  border-radius:3px;
+  padding:10px 14px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  line-height:1.7;
+  word-break:break-all;
+  white-space:pre-wrap;
+  box-shadow:inset 0 1px 4px rgba(0,0,0,0.3);
+}
+
+/* RESULT BOXES */
+.result-wrap{
+  background:var(--navy);
+  border-radius:4px;
+  padding:18px 20px;
+  margin-top:16px;
+  box-shadow:0 4px 16px var(--shadow2),3px 3px 0 var(--amber);
+}
+.result-wrap.decrypt{box-shadow:0 4px 16px var(--shadow2),3px 3px 0 var(--sage);}
+.result-header{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  font-weight:600;
+  color:var(--amber2);
+  letter-spacing:2px;
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+.result-big{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:18px;
+  color:#fff;
+  word-break:break-all;
+  line-height:1.6;
+}
+.result-wrap.decrypt .result-big{color:var(--amber3);}
+.success-box{
+  background:rgba(45,90,61,0.08);
+  border:1px solid var(--sage2);
+  border-radius:4px;
+  padding:12px 16px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  color:var(--sage);
+  margin-top:12px;
+  line-height:1.8;
+}
+.warn-box{
+  background:rgba(139,37,0,0.07);
+  border:1px solid var(--copper2);
+  border-radius:4px;
+  padding:12px 16px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  color:var(--rust);
+  margin-top:10px;
+  line-height:1.8;
+}
+
+/* TABLES */
+.tbl-wrap{
+  overflow-x:auto;
+  margin-top:16px;
+  border:1px solid var(--border);
+  border-radius:4px;
+  box-shadow:2px 2px 0 var(--shadow);
+}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:280px;}
+.tbl th{
+  background:var(--navy);
+  padding:10px 12px;
+  text-align:center;
+  color:var(--amber2);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+.tbl td{
+  padding:8px 12px;
+  text-align:center;
+  border-bottom:1px solid var(--border);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  background:#fff;
+}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:rgba(30,58,110,0.04);}
+
+/* MATRIX */
+.matrix-wrap{display:flex;gap:24px;flex-wrap:wrap;margin:16px 0;align-items:flex-start;}
+.matrix-label{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  color:var(--muted2);
+  margin-bottom:8px;
+  text-align:center;
+  letter-spacing:.5px;
+  text-transform:uppercase;
+}
+.matrix{
+  display:inline-grid;
+  gap:4px;
+  background:var(--cream);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:10px;
+}
+.matrix-cell{
+  width:40px;height:40px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:16px;
+  color:var(--indigo);
+  background:#fff;
+  border-radius:3px;
+  border:1px solid var(--border);
+  font-weight:600;
+}
+.matrix-cell.hi{background:var(--navy);color:var(--amber3);border-color:var(--navy);}
+
+/* PLAYFAIR */
+.pf-grid{
+  display:grid;
+  grid-template-columns:repeat(5,46px);
+  grid-template-rows:repeat(5,46px);
+  gap:3px;
+  background:var(--cream);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:8px;
+  display:inline-grid;
+}
+.pf-cell{
+  display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:18px;
+  color:var(--ink);
+  background:#fff;
+  border-radius:3px;
+  border:1px solid var(--border);
+  font-weight:600;
+  transition:background .2s,color .2s;
+}
+.pf-cell.hi-row{background:rgba(30,58,110,0.12);color:var(--indigo);}
+.pf-cell.hi-col{background:rgba(45,90,61,0.12);color:var(--sage);}
+.pf-cell.hi-both{background:var(--amber2);color:#fff;}
+
+/* KEY CARD */
+.key-card{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0;
+  border:1px solid var(--border);
+  border-radius:4px;
+  overflow:hidden;
+  box-shadow:2px 2px 0 var(--shadow);
+  margin-top:14px;
+}
+@media(max-width:520px){.key-card{grid-template-columns:1fr;}}
+.key-section{padding:16px 18px;}
+.key-section.pub{background:linear-gradient(135deg,rgba(45,90,61,0.07),rgba(45,90,61,0.03));border-right:1px solid var(--border);}
+.key-section.priv{background:linear-gradient(135deg,rgba(139,37,0,0.06),rgba(139,37,0,0.02));}
+.key-section-title{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  margin-bottom:10px;
+}
+.key-section.pub .key-section-title{color:var(--sage);}
+.key-section.priv .key-section-title{color:var(--rust);}
+.key-row{display:flex;align-items:baseline;gap:8px;padding:4px 0;}
+.kl{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted2);width:50px;flex-shrink:0;}
+.kv{font-family:'IBM Plex Mono',monospace;font-size:18px;color:var(--navy);font-weight:600;word-break:break-all;}
+
+/* HASH */
+.hash-display{
+  background:var(--navy);
+  border-radius:4px;
+  padding:16px 18px;
+  margin-top:14px;
+  box-shadow:2px 2px 0 rgba(0,0,0,0.2);
+}
+.hash-label{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  color:var(--amber2);
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+.hash-val{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:14px;
+  color:#fff;
+  word-break:break-all;
+  line-height:1.7;
+}
+
+/* RIBBON */
+.ribbon{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  color:var(--rust);
+  background:rgba(139,37,0,0.06);
+  border:1px solid var(--copper2);
+  border-radius:3px;
+  padding:10px 14px;
+  margin:14px 0 10px;
+  letter-spacing:.5px;
+}
+
+/* DH CARDS */
+.dh-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px;}
+@media(max-width:500px){.dh-row{grid-template-columns:1fr;}}
+.dh-box{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:16px;
+  box-shadow:2px 2px 0 var(--shadow);
+}
+.dh-title{
+  font-family:'Playfair Display',serif;
+  font-size:16px;
+  font-weight:700;
+  color:var(--navy);
+  margin-bottom:12px;
+  padding-bottom:8px;
+  border-bottom:1px dashed var(--border2);
+}
+.dh-val{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:15px;
+  color:var(--indigo);
+  word-break:break-all;
+  line-height:1.6;
+}
+
+/* COMPARE */
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+@media(max-width:500px){.cmp-grid{grid-template-columns:1fr;}}
+.cmp-box{background:#fff;border:1px solid var(--border);border-radius:4px;padding:14px;box-shadow:2px 2px 0 var(--shadow);}
+.cmp-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--navy);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.cmp-hash{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink3);word-break:break-all;line-height:1.6;}
+
+/* SECTION BADGE */
+.sec-badge{
+  display:inline-block;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9px;
+  font-weight:600;
+  background:var(--navy);
+  color:var(--amber2);
+  border-radius:2px;
+  padding:3px 8px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  margin-bottom:14px;
+}
+
+/* BIT GRID */
+.bit-grid{display:flex;flex-wrap:wrap;gap:3px;margin-top:8px;}
+.bit{width:16px;height:16px;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:10px;display:flex;align-items:center;justify-content:center;}
+.bit.b0{background:var(--cream);color:var(--border2);border:1px solid var(--border);}
+.bit.b1{background:var(--indigo2);color:#fff;}
+
+/* FOOTER */
+.footer{
+  text-align:center;
+  margin-top:50px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  color:var(--muted2);
+  line-height:2;
+  letter-spacing:.5px;
+}
+.footer-rule{width:120px;height:1px;background:var(--border2);margin:0 auto 14px;}
+
+/* ANIMATIONS */
+@keyframes slideDown{from{opacity:0;transform:translateY(-20px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--cream);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-inner">
+      <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;">
+        <div class="header-stamp">🔐</div>
+        <div style="flex:1;min-width:200px;">
+          <h1>Crypto<span>Lab</span></h1>
+          <div class="header-sub">Step-by-Step Cryptography Simulator</div>
+          <div class="header-rule"></div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:rgba(200,175,140,0.5);margin-top:10px;letter-spacing:1px;">
+            CLASSICAL · MODERN · HASHING &nbsp;|&nbsp; ALL COMPUTATIONS VISUALIZED
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION TABS -->
+  <div class="section-nav">
+    <button class="sec-tab active" onclick="showSection(0)" id="sectab0">
+      <span class="sec-tab-ico">📜</span>Classical Ciphers
+    </button>
+    <button class="sec-tab" onclick="showSection(1)" id="sectab1">
+      <span class="sec-tab-ico">🏛️</span>Modern Cryptography
+    </button>
+    <button class="sec-tab" onclick="showSection(2)" id="sectab2">
+      <span class="sec-tab-ico">🔍</span>Hash Functions
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SECTION 0 — CLASSICAL CIPHERS
+  ══════════════════════════════════════ -->
+  <div class="section-panel active" id="sec0">
+    <div class="algo-nav">
+      <button class="algo-tab active" onclick="showAlgo('classical',0)" id="ctab0">Caesar</button>
+      <button class="algo-tab" onclick="showAlgo('classical',1)" id="ctab1">Vigenère</button>
+      <button class="algo-tab" onclick="showAlgo('classical',2)" id="ctab2">Vernam</button>
+      <button class="algo-tab" onclick="showAlgo('classical',3)" id="ctab3">Hill</button>
+      <button class="algo-tab" onclick="showAlgo('classical',4)" id="ctab4">Playfair</button>
+    </div>
+
+    <!-- CAESAR -->
+    <div class="algo-panel active" id="cpanel0">
+      <div class="sec-badge">Classical · Substitution</div>
+      <div class="panel-title">Caesar Cipher</div>
+      <div class="panel-subtitle">Shift Substitution — 50 BC</div>
+      <div class="divider"></div>
+      <div class="bubble-info">Each letter in the plaintext is <strong>shifted forward</strong> by a fixed number of positions in the alphabet. Julius Caesar famously used a shift of 3. Simple but historically significant — the foundation of modern substitution ciphers.</div>
+      <div class="ctrl-grid">
+        <div class="ctrl-box" style="grid-column:span 2">
+          <label class="field-label">Plaintext</label>
+          <input class="inp" id="cc_plain" placeholder="e.g. HELLO WORLD" oninput="caesarRun()">
+        </div>
+        <div class="ctrl-box">
+          <label class="field-label">Shift (1–25)</label>
+          <input class="inp" id="cc_shift" type="number" min="1" max="25" value="3" oninput="caesarRun()">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="caesarRun()">▶ Encrypt Step-by-Step</button>
+        <button class="btn secondary" onclick="caesarDecrypt()">◀ Decrypt</button>
+      </div>
+      <div id="cc_out"></div>
+    </div>
+
+    <!-- VIGENERE -->
+    <div class="algo-panel" id="cpanel1">
+      <div class="sec-badge">Classical · Polyalphabetic</div>
+      <div class="panel-title">Vigenère Cipher</div>
+      <div class="panel-subtitle">Keyword Substitution — 1553</div>
+      <div class="divider"></div>
+      <div class="bubble-info">Uses a <strong>repeating keyword</strong> to apply multiple different Caesar shifts. Each letter of the key determines the shift for the corresponding plaintext letter. Called "le chiffre indéchiffrable" — the unbreakable cipher — for 300 years.</div>
+      <div class="ctrl-grid">
+        <div class="ctrl-box" style="grid-column:span 2">
+          <label class="field-label">Plaintext</label>
+          <input class="inp" id="vc_plain" placeholder="e.g. ATTACKATDAWN">
+        </div>
+        <div class="ctrl-box">
+          <label class="field-label">Keyword</label>
+          <input class="inp" id="vc_key" placeholder="e.g. LEMON">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="vigenereRun(true)">▶ Encrypt Step-by-Step</button>
+        <button class="btn secondary" onclick="vigenereRun(false)">◀ Decrypt</button>
+      </div>
+      <div id="vc_out"></div>
+    </div>
+
+    <!-- VERNAM -->
+    <div class="algo-panel" id="cpanel2">
+      <div class="sec-badge">Classical · One-Time Pad</div>
+      <div class="panel-title">Vernam Cipher</div>
+      <div class="panel-subtitle">XOR One-Time Pad — 1917</div>
+      <div class="divider"></div>
+      <div class="bubble-info">The <strong>only cipher proven to be perfectly secure</strong> (Shannon, 1949). Each character is XOR'd with a corresponding key character. The key must be truly random, same length as the message, and never reused. Impractical but theoretically unbreakable.</div>
+      <div class="ctrl-grid">
+        <div class="ctrl-box" style="grid-column:span 2">
+          <label class="field-label">Plaintext</label>
+          <input class="inp" id="vn_plain" placeholder="e.g. HELLO">
+        </div>
+        <div class="ctrl-box">
+          <label class="field-label">Key (same length)</label>
+          <input class="inp" id="vn_key" placeholder="e.g. XMCKL">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="vernamRun(true)">▶ Encrypt Step-by-Step</button>
+        <button class="btn secondary" onclick="vernamRun(false)">◀ Decrypt (XOR again)</button>
+      </div>
+      <div id="vn_out"></div>
+    </div>
+
+    <!-- HILL -->
+    <div class="algo-panel" id="cpanel3">
+      <div class="sec-badge">Classical · Linear Algebra</div>
+      <div class="panel-title">Hill Cipher</div>
+      <div class="panel-subtitle">Matrix Encryption — 1929</div>
+      <div class="divider"></div>
+      <div class="bubble-info">Uses a <strong>key matrix</strong> to encrypt blocks of letters via linear algebra. Each block of plaintext is multiplied by the key matrix modulo 26. Decryption requires computing the <strong>matrix inverse mod 26</strong> using the Extended Euclidean Algorithm.</div>
+      <div class="ctrl-grid">
+        <div class="ctrl-box" style="grid-column:span 2">
+          <label class="field-label">Plaintext (letters only)</label>
+          <input class="inp" id="hc_plain" placeholder="e.g. HELP" maxlength="20">
+        </div>
+        <div class="ctrl-box">
+          <label class="field-label">2×2 Key Matrix Preset</label>
+          <select class="inp" id="hc_preset" onchange="hillPreset()">
+            <option value="3,3,2,5">[ 3 3 / 2 5 ]</option>
+            <option value="6,24,1,13">[ 6 24 / 1 13 ]</option>
+            <option value="9,4,5,7">[ 9 4 / 5 7 ]</option>
+          </select>
+        </div>
+      </div>
+      <div class="matrix-wrap">
+        <div>
+          <div class="matrix-label">Key Matrix K</div>
+          <div class="matrix" style="grid-template-columns:repeat(2,1fr);">
+            <div class="matrix-cell" id="hk0">3</div><div class="matrix-cell" id="hk1">3</div>
+            <div class="matrix-cell" id="hk2">2</div><div class="matrix-cell" id="hk3">5</div>
+          </div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="hillRun(true)">▶ Encrypt Step-by-Step</button>
+        <button class="btn secondary" onclick="hillRun(false)">◀ Decrypt</button>
+      </div>
+      <div id="hc_out"></div>
+    </div>
+
+    <!-- PLAYFAIR -->
+    <div class="algo-panel" id="cpanel4">
+      <div class="sec-badge">Classical · Digraph</div>
+      <div class="panel-title">Playfair Cipher</div>
+      <div class="panel-subtitle">5×5 Grid Substitution — 1854</div>
+      <div class="divider"></div>
+      <div class="bubble-info">Uses a <strong>5×5 key square</strong> to encrypt pairs of letters (digraphs). I and J share one cell. Three rules: same row → shift right, same column → shift down, rectangle → swap columns. First practical digraph cipher, used by the British in WWI.</div>
+      <div class="ctrl-grid">
+        <div class="ctrl-box" style="grid-column:span 2">
+          <label class="field-label">Plaintext</label>
+          <input class="inp" id="pf_plain" placeholder="e.g. HIDETHEGOALONG">
+        </div>
+        <div class="ctrl-box">
+          <label class="field-label">Keyword</label>
+          <input class="inp" id="pf_key" placeholder="e.g. MONARCHY" oninput="playfairBuild()">
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div class="matrix-label" style="text-align:left;margin-bottom:8px;">Playfair 5×5 Key Square</div>
+        <div class="pf-grid" id="pf_grid"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="playfairRun(true)">▶ Encrypt Step-by-Step</button>
+        <button class="btn secondary" onclick="playfairRun(false)">◀ Decrypt</button>
+      </div>
+      <div id="pf_out"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SECTION 1 — MODERN CRYPTO
+  ══════════════════════════════════════ -->
+  <div class="section-panel" id="sec1">
+    <div class="algo-nav">
+      <button class="algo-tab active" onclick="showAlgo('modern',0)" id="mtab0">AES</button>
+      <button class="algo-tab" onclick="showAlgo('modern',1)" id="mtab1">DES</button>
+      <button class="algo-tab" onclick="showAlgo('modern',2)" id="mtab2">RSA</button>
+      <button class="algo-tab" onclick="showAlgo('modern',3)" id="mtab3">Diffie–Hellman</button>
+    </div>
+
+    <!-- AES -->
+    <div class="algo-panel active" id="mpanel0">
+      <div class="sec-badge">Modern · Symmetric · Block Cipher</div>
+      <div class="panel-title">AES — Advanced Encryption Standard</div>
+      <div class="panel-subtitle">Rijndael · NIST Standard 2001 · 128/192/256-bit</div>
+      <div class="divider"></div>
+      <div class="bubble-info">AES processes data in <strong>4×4 byte blocks (128-bit)</strong>. It applies 10/12/14 rounds for 128/192/256-bit keys, respectively. Each round: <strong>SubBytes → ShiftRows → MixColumns → AddRoundKey</strong>. Currently the world's most widely used symmetric encryption standard.</div>
+      <div class="ctrl-grid">
+        <div class="ctrl-box" style="grid-column:span 2">
+          <label class="field-label">Plaintext (16 chars = 1 block)</label>
+          <input class="inp" id="aes_plain" placeholder="e.g. THEQUICKBROWNFOX" maxlength="16">
+        </div>
+        <div class="ctrl-box">
+          <label class="field-label">Key Size</label>
+          <select class="inp" id="aes_keysize">
+            <option value="128">AES-128 (10 rounds)</option>
+            <option value="192">AES-192 (12 rounds)</option>
+            <option value="256">AES-256 (14 rounds)</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="aesSimulate()">▶ Simulate Step-by-Step</button>
+      </div>
+      <div id="aes_out"></div>
+    </div>
+
+    <!-- DES -->
+    <div class="algo-panel" id="mpanel1">
+      <div class="sec-badge">Modern · Symmetric · Feistel Network</div>
+      <div class="panel-title">DES — Data Encryption Standard</div>
+      <div class="panel-subtitle">IBM / NIST · 1977 · 56-bit Effective Key</div>
+      <div class="divider"></div>
+      <div class="bubble-info">DES uses a <strong>64-bit key (56-bit effective)</strong> and processes 64-bit blocks through <strong>16 Feistel rounds</strong>. Each round: split L/R halves → expand R (32→48 bits) → XOR with subkey → S-box substitution → permute → XOR with L. Now considered insecure; replaced by AES.</div>
+      <div class="ctrl-grid">
+        <div class="ctrl-box" style="grid-column:span 2">
+          <label class="field-label">Plaintext (8 chars = 64 bits)</label>
+          <input class="inp" id="des_plain" placeholder="e.g. SECURITY" maxlength="8">
+        </div>
+        <div class="ctrl-box">
+          <label class="field-label">Key (8 chars)</label>
+          <input class="inp" id="des_key" placeholder="e.g. MYDESKEY" maxlength="8">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="desSimulate()">▶ Simulate Step-by-Step</button>
+      </div>
+      <div id="des_out"></div>
+    </div>
+
+    <!-- RSA -->
+    <div class="algo-panel" id="mpanel2">
+      <div class="sec-badge">Modern · Asymmetric · Public-Key</div>
+      <div class="panel-title">RSA — Rivest–Shamir–Adleman</div>
+      <div class="panel-subtitle">MIT · 1977 · Integer Factorization Problem</div>
+      <div class="divider"></div>
+      <div class="bubble-info">RSA security relies on the <strong>difficulty of factoring large numbers</strong>. Key generation: pick primes p, q → n=p·q → φ(n)=(p-1)(q-1) → choose e coprime to φ(n) → find private key d via Extended Euclidean Algorithm. Encrypt: C=M^e mod n. Decrypt: M=C^d mod n.</div>
+      <div class="ctrl-grid">
+        <div class="ctrl-box">
+          <label class="field-label">Prime p</label>
+          <select class="inp" id="rsa_p" onchange="rsaRun()">
+            <option value="11">11</option><option value="13" selected>13</option>
+            <option value="17">17</option><option value="19">19</option>
+            <option value="23">23</option><option value="29">29</option>
+            <option value="31">31</option><option value="37">37</option>
+            <option value="41">41</option><option value="43">43</option>
+            <option value="47">47</option><option value="53">53</option>
+          </select>
+        </div>
+        <div class="ctrl-box">
+          <label class="field-label">Prime q</label>
+          <select class="inp" id="rsa_q" onchange="rsaRun()">
+            <option value="11">11</option><option value="13">13</option>
+            <option value="17">17</option><option value="19" selected>19</option>
+            <option value="23">23</option><option value="29">29</option>
+            <option value="31">31</option><option value="37">37</option>
+            <option value="41">41</option><option value="43">43</option>
+            <option value="47">47</option><option value="53">53</option>
+          </select>
+        </div>
+        <div class="ctrl-box">
+          <label class="field-label">Message</label>
+          <input class="inp" id="rsa_msg" placeholder="e.g. HI" maxlength="4">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="rsaRun()">▶ Generate Keys + Encrypt</button>
+        <button class="btn secondary" onclick="rsaDecrypt()">🔓 Decrypt</button>
+      </div>
+      <div id="rsa_out"></div>
+    </div>
+
+    <!-- DIFFIE-HELLMAN -->
+    <div class="algo-panel" id="mpanel3">
+      <div class="sec-badge">Modern · Key Exchange · Discrete Log</div>
+      <div class="panel-title">Diffie–Hellman Key Exchange</div>
+      <div class="panel-subtitle">Stanford · 1976 · Discrete Logarithm Problem</div>
+      <div class="divider"></div>
+      <div class="bubble-info">Alice and Bob agree on public values p (prime) and g (generator). Each picks a <strong>secret private key</strong>, computes a public key, exchanges it publicly, then independently computes the <strong>same shared secret</strong> — without ever transmitting the secret over the network.</div>
+      <div class="ctrl-grid">
+        <div class="ctrl-box">
+          <label class="field-label">Prime p (public)</label>
+          <select class="inp" id="dh_p">
+            <option value="23">23</option><option value="29">29</option>
+            <option value="31">31</option><option value="37">37</option>
+            <option value="41">41</option><option value="47">47</option>
+            <option value="53">53</option><option value="59">59</option>
+          </select>
+        </div>
+        <div class="ctrl-box">
+          <label class="field-label">Generator g (public)</label>
+          <select class="inp" id="dh_g">
+            <option value="2">2</option><option value="3">3</option>
+            <option value="5">5</option><option value="7">7</option>
+          </select>
+        </div>
+        <div class="ctrl-box">
+          <label class="field-label">Alice's Private Key a</label>
+          <input class="inp" id="dh_a" type="number" value="6" min="2" max="20">
+        </div>
+      </div>
+      <div class="ctrl-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="ctrl-box">
+          <label class="field-label">Bob's Private Key b</label>
+          <input class="inp" id="dh_b" type="number" value="15" min="2" max="20">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="dhRun()">▶ Exchange Keys Step-by-Step</button>
+      </div>
+      <div id="dh_out"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SECTION 2 — HASH FUNCTIONS
+  ══════════════════════════════════════ -->
+  <div class="section-panel" id="sec2">
+    <div class="algo-nav">
+      <button class="algo-tab active" onclick="showAlgo('hash',0)" id="htab0">MD5</button>
+      <button class="algo-tab" onclick="showAlgo('hash',1)" id="htab1">SHA-256</button>
+      <button class="algo-tab" onclick="showAlgo('hash',2)" id="htab2">Compare Both</button>
+    </div>
+
+    <!-- MD5 -->
+    <div class="algo-panel active" id="hpanel0">
+      <div class="sec-badge">Hash Function · 128-bit · Broken</div>
+      <div class="panel-title">MD5 — Message Digest Algorithm 5</div>
+      <div class="panel-subtitle">Ron Rivest · MIT · 1992 · 32 Hex Characters</div>
+      <div class="divider"></div>
+      <div class="bubble-info">MD5 produces a <strong>128-bit (32 hex character) hash</strong>. It processes data in 512-bit blocks through 4 rounds of 16 operations each (64 total). Uses bitwise operations, modular addition, and non-linear functions F, G, H, I. <strong>⚠ MD5 is now cryptographically broken — collision attacks exist.</strong></div>
+      <div class="ctrl-grid" style="grid-template-columns:1fr;">
+        <div class="ctrl-box">
+          <label class="field-label">Input Message</label>
+          <input class="inp" id="md5_in" placeholder="e.g. hello world">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn amber" onclick="md5Simulate()">▶ Compute MD5 Step-by-Step</button>
+      </div>
+      <div id="md5_out"></div>
+    </div>
+
+    <!-- SHA256 -->
+    <div class="algo-panel" id="hpanel1">
+      <div class="sec-badge">Hash Function · 256-bit · Secure</div>
+      <div class="panel-title">SHA-256 — Secure Hash Algorithm 256</div>
+      <div class="panel-subtitle">NSA / NIST · 2001 · SHA-2 Family · 64 Hex Characters</div>
+      <div class="divider"></div>
+      <div class="bubble-info">SHA-256 produces a <strong>256-bit (64 hex character) hash</strong>. Processes 512-bit blocks through 64 rounds using 8 working variables (a-h), message schedule expansion W[0..63], and bitwise operations (Ch, Maj, Σ0, Σ1, σ0, σ1) with 64 fixed round constants K[0..63].</div>
+      <div class="ctrl-grid" style="grid-template-columns:1fr;">
+        <div class="ctrl-box">
+          <label class="field-label">Input Message</label>
+          <input class="inp" id="sha_in" placeholder="e.g. hello world">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn sage" onclick="sha256Simulate()">▶ Compute SHA-256 Step-by-Step</button>
+      </div>
+      <div id="sha_out"></div>
+    </div>
+
+    <!-- COMPARE -->
+    <div class="algo-panel" id="hpanel2">
+      <div class="sec-badge">Comparison · Avalanche Effect</div>
+      <div class="panel-title">MD5 vs SHA-256</div>
+      <div class="panel-subtitle">Side-by-Side Analysis</div>
+      <div class="divider"></div>
+      <div class="bubble-info">Hash the same input with both algorithms simultaneously. Observe the <strong>avalanche effect</strong> — changing a single character produces a completely different hash. Compare output sizes, security levels, and how many hex digits change.</div>
+      <div class="ctrl-grid" style="grid-template-columns:1fr;">
+        <div class="ctrl-box">
+          <label class="field-label">Message to Hash</label>
+          <input class="inp" id="cmp_in" placeholder="e.g. cryptography" oninput="compareHash()">
+        </div>
+      </div>
+      <div id="cmp_out"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-rule"></div>
+    CRYPTOLAB SIMULATOR &nbsp;·&nbsp; STEP-BY-STEP CRYPTOGRAPHY<br>
+    All computations performed in-browser &nbsp;·&nbsp; Educational use only
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════ */
+function showSection(i){
+  document.querySelectorAll('.section-panel').forEach((p,j)=>p.classList.toggle('active',j===i));
+  document.querySelectorAll('.sec-tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+}
+function showAlgo(group,i){
+  var prefix={classical:'c',modern:'m',hash:'h'}[group];
+  document.querySelectorAll('[id^="'+prefix+'panel"]').forEach((p,j)=>p.classList.toggle('active',j===i));
+  document.querySelectorAll('[id^="'+prefix+'tab"]').forEach((t,j)=>t.classList.toggle('active',j===i));
+}
+
+/* ═══════════════════════════════════
+   HELPERS
+═══════════════════════════════════ */
+var _stepN=0;
+function sc(icon,title,desc,math){
+  _stepN++;
+  return '<div class="step-card">'
+    +'<div class="step-n">Step '+_stepN+'</div>'
+    +'<div class="step-title">'+icon+' '+title+'</div>'
+    +'<div class="step-desc">'+desc+'</div>'
+    +(math?'<div class="step-math">'+math+'</div>':'')
+    +'</div>';
+}
+function beginSteps(){_stepN=0;return '<div class="steps-log">';}
+function endSteps(){return '</div>';}
+
+function toUpper(s){return s.toUpperCase().replace(/[^A-Z]/g,'');}
+function charIdx(c){return c.charCodeAt(0)-65;}
+function idxChar(i){return String.fromCharCode(((i%26)+26)%26+65);}
+function modpow(base,exp,mod){var r=1n;base=BigInt(base)%BigInt(mod);exp=BigInt(exp);mod=BigInt(mod);while(exp>0n){if(exp%2n===1n)r=r*base%mod;exp>>=1n;base=base*base%mod;}return Number(r);}
+function gcd(a,b){return b===0?a:gcd(b,a%b);}
+function modInv(a,m){var or=a,r=m,os=1,s=0,q,t;while(r!==0){q=Math.floor(or/r);t=r;r=or-q*r;or=t;t=s;s=os-q*s;os=t;}return((os%m)+m)%m;}
+function toBin8(n){return (n>>>0).toString(2).padStart(8,'0');}
+function toHex2(n){return (n&0xff).toString(16).padStart(2,'0').toUpperCase();}
+
+/* ═══════════════════════════════════
+   CAESAR
+═══════════════════════════════════ */
+function caesarRun(){
+  var raw=document.getElementById('cc_plain').value;
+  var shift=parseInt(document.getElementById('cc_shift').value)||3;
+  shift=((shift%26)+26)%26;
+  if(!raw){document.getElementById('cc_out').innerHTML='';return;}
+  var plain=raw.toUpperCase();
+  var rows='',cipher='';
+  var alpha=Array.from({length:26},(_,i)=>String.fromCharCode(65+i));
+  for(var i=0;i<plain.length;i++){
+    var c=plain[i];
+    if(c>='A'&&c<='Z'){
+      var orig=charIdx(c);var enc=(orig+shift)%26;
+      cipher+=idxChar(enc);
+      rows+='<tr><td>'+c+'</td><td>'+orig+'</td><td>+'+shift+'</td><td>'+enc+'</td><td style="color:var(--indigo);font-weight:600;">'+idxChar(enc)+'</td></tr>';
+    } else {cipher+=c;rows+='<tr><td>'+c+'</td><td colspan="3" style="color:var(--muted2);font-style:italic;">not a letter</td><td>'+c+'</td></tr>';}
+  }
+  var steps=beginSteps()
+   +sc('↗','Understand the Shift','Every letter moves forward by <strong>'+shift+' positions</strong> in the alphabet. After Z, it wraps around back to A (modular arithmetic).','Shift = '+shift+'   →   A → '+idxChar(shift)+',  B → '+idxChar(1+shift)+',  C → '+idxChar(2+shift)+',  ...')
+   +sc('📊','Build the Shifted Alphabet','Original: '+alpha.join(' ')+'\nShifted:   '+alpha.map((_,i)=>idxChar(i+shift)).join(' '),null)
+   +sc('🔄','Encrypt Each Character','For every letter: (1) find position 0-25, (2) add shift, (3) take result mod 26, (4) convert back to letter.','Formula: C = (P + shift) mod 26 = (P + '+shift+') mod 26')
+   +endSteps();
+  document.getElementById('cc_out').innerHTML=steps
+    +'<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Char</th><th>Position</th><th>Shift</th><th>New Pos</th><th>Cipher</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+    +'<div class="result-wrap"><div class="result-header">Encrypted Ciphertext</div><div class="result-big">'+cipher+'</div></div>';
+}
+function caesarDecrypt(){
+  var raw=document.getElementById('cc_plain').value.toUpperCase();
+  var shift=parseInt(document.getElementById('cc_shift').value)||3;
+  shift=((shift%26)+26)%26;
+  if(!raw)return;
+  var plain='',rows='';
+  for(var i=0;i<raw.length;i++){
+    var c=raw[i];
+    if(c>='A'&&c<='Z'){var enc=charIdx(c);var dec=((enc-shift)%26+26)%26;plain+=idxChar(dec);rows+='<tr><td>'+c+'</td><td>'+enc+'</td><td>−'+shift+'</td><td>'+dec+'</td><td style="color:var(--sage);font-weight:600;">'+idxChar(dec)+'</td></tr>';}
+    else{plain+=c;rows+='<tr><td>'+c+'</td><td colspan="3" style="color:var(--muted2);">skip</td><td>'+c+'</td></tr>';}
+  }
+  var steps=beginSteps()+sc('↙','Decrypt — Reverse Shift','To decrypt, shift backwards by '+shift+'. Each letter moves back '+shift+' positions in the alphabet.','Formula: P = (C − '+shift+' + 26) mod 26')+endSteps();
+  document.getElementById('cc_out').innerHTML=steps
+    +'<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Cipher</th><th>Position</th><th>Shift</th><th>New Pos</th><th>Plain</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+    +'<div class="result-wrap decrypt"><div class="result-header">Decrypted Plaintext</div><div class="result-big">'+plain+'</div></div>';
+}
+
+/* ═══════════════════════════════════
+   VIGENERE
+═══════════════════════════════════ */
+function vigenereRun(encrypt){
+  var plain=toUpper(document.getElementById('vc_plain').value);
+  var key=toUpper(document.getElementById('vc_key').value);
+  if(!plain||!key){document.getElementById('vc_out').innerHTML='<div class="warn-box">Please enter both plaintext and keyword.</div>';return;}
+  var result='',rows='',ki=0;
+  for(var i=0;i<plain.length;i++){
+    var p=charIdx(plain[i]);var k=charIdx(key[ki%key.length]);
+    var c=encrypt?((p+k)%26):((p-k+26)%26);
+    result+=idxChar(c);
+    rows+='<tr><td>'+plain[i]+'</td><td>'+p+'</td><td>'+key[ki%key.length]+'</td><td>'+k+'</td><td>'+(encrypt?'+':'−')+'</td><td>'+c+'</td><td style="font-weight:600;color:var(--indigo);">'+idxChar(c)+'</td></tr>';
+    ki++;
+  }
+  var extKey=plain.split('').map((_,i)=>key[i%key.length]).join('');
+  var steps=beginSteps()
+   +sc('🔁','Extend the Keyword','The keyword "'+key+'" is repeated cyclically to match the plaintext length.','keyword: '+key+' → extended: '+extKey)
+   +sc('🔢','Convert to Numbers','Convert both plaintext and keyword to position numbers (A=0, B=1, ..., Z=25).','plain:  ['+plain.split('').map(c=>charIdx(c)).join(', ')+']\nkey:    ['+extKey.split('').map(c=>charIdx(c)).join(', ')+']')
+   +sc('➕',(encrypt?'Add':'Subtract')+' Key Values','For each position: '+(encrypt?'C = (P + K) mod 26 — shift plaintext forward by key amount':'P = (C − K + 26) mod 26 — shift ciphertext backward by key amount'),'Result: ['+result.split('').map(c=>charIdx(c)).join(', ')+']')
+   +sc('🔤','Convert Numbers Back to Letters','Map each result number (0-25) back to the corresponding alphabet letter.','Output: '+result)
+   +endSteps();
+  document.getElementById('vc_out').innerHTML=steps
+    +'<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Char</th><th>P#</th><th>Key</th><th>K#</th><th>Op</th><th>Result#</th><th>Output</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+    +'<div class="result-wrap'+(encrypt?'':' decrypt')+'"><div class="result-header">'+(encrypt?'Encrypted Ciphertext':'Decrypted Plaintext')+'</div><div class="result-big">'+result+'</div></div>';
+}
+
+/* ═══════════════════════════════════
+   VERNAM
+═══════════════════════════════════ */
+function vernamRun(encrypt){
+  var plain=toUpper(document.getElementById('vn_plain').value);
+  var key=toUpper(document.getElementById('vn_key').value);
+  if(!plain||!key){document.getElementById('vn_out').innerHTML='<div class="warn-box">Please enter both plaintext and key.</div>';return;}
+  if(plain.length!==key.length){document.getElementById('vn_out').innerHTML='<div class="warn-box">Key must be exactly the same length as plaintext ('+plain.length+' characters needed, got '+key.length+').</div>';return;}
+  var result='',rows='';
+  for(var i=0;i<plain.length;i++){
+    var p=charIdx(plain[i]);var k=charIdx(key[i]);
+    var pb=(p).toString(2).padStart(5,'0');var kb=(k).toString(2).padStart(5,'0');
+    var xor=p^k;var xb=(xor).toString(2).padStart(5,'0');
+    result+=idxChar(xor%26);
+    rows+='<tr><td>'+plain[i]+'</td><td>'+p+'</td><td>'+pb+'</td><td>'+key[i]+'</td><td>'+k+'</td><td>'+kb+'</td><td>'+xb+'</td><td>'+xor+'</td><td style="font-weight:600;color:var(--indigo);">'+idxChar(xor%26)+'</td></tr>';
+  }
+  var steps=beginSteps()
+   +sc('🎲','The One-Time Pad Principle','Each character is processed independently using XOR (⊕). The key must be:\n  · Truly random\n  · Same length as the message\n  · Used only ONCE and then discarded\nThis makes it information-theoretically secure — proven by Claude Shannon (1949).','Security condition: |key| = |message|, key is uniformly random')
+   +sc('🔢','Convert to Numbers','Convert plaintext and key characters to position numbers (A=0, Z=25), then to 5-bit binary.','P = ['+plain.split('').map(c=>charIdx(c)).join(', ')+']\nK = ['+key.split('').map(c=>charIdx(c)).join(', ')+']')
+   +sc('⊕','XOR Each Pair of Bits','XOR (exclusive or) is its own inverse: applying it twice returns the original. This is the core of Vernam encryption and decryption (same operation!).','Encrypt: P ⊕ K = C\nDecrypt: C ⊕ K = P\n(XOR is a self-inverse operation)')
+   +sc('🔤','Convert Result to Letters','Map XOR results back to alphabet letters mod 26.','Output: '+result)
+   +endSteps();
+  document.getElementById('vn_out').innerHTML=steps
+    +'<div class="tbl-wrap"><table class="tbl"><thead><tr><th>P</th><th>#</th><th>Binary</th><th>K</th><th>#</th><th>Binary</th><th>XOR</th><th>#</th><th>Output</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+    +'<div class="result-wrap'+(encrypt?'':' decrypt')+'"><div class="result-header">'+(encrypt?'Encrypted (XOR)':'Decrypted (XOR again)')+'</div><div class="result-big">'+result+'</div></div>';
+}
+
+/* ═══════════════════════════════════
+   HILL
+═══════════════════════════════════ */
+var hillKey=[3,3,2,5];
+function hillPreset(){
+  var v=document.getElementById('hc_preset').value.split(',').map(Number);
+  hillKey=v;
+  ['hk0','hk1','hk2','hk3'].forEach((id,i)=>document.getElementById(id).textContent=v[i]);
+}
+function matInv2mod26(m){
+  var det=((m[0]*m[3]-m[1]*m[2])%26+26)%26;
+  if(gcd(det,26)!==1)return null;
+  var di=modInv(det,26);
+  return[(m[3]*di%26),((((-m[1])*di)%26+26)%26),((((-m[2])*di)%26+26)%26),(m[0]*di%26)];
+}
+function hillRun(encrypt){
+  var plain=toUpper(document.getElementById('hc_plain').value);
+  if(!plain){document.getElementById('hc_out').innerHTML='<div class="warn-box">Enter plaintext!</div>';return;}
+  if(plain.length%2!==0)plain+='X';
+  var K=hillKey;var Kinv=matInv2mod26(K);
+  if(!encrypt&&!Kinv){document.getElementById('hc_out').innerHTML='<div class="warn-box">Key matrix is not invertible mod 26 — choose a different preset.</div>';return;}
+  var M=encrypt?K:Kinv;
+  var result='',rows='';
+  for(var i=0;i<plain.length;i+=2){
+    var p1=charIdx(plain[i]),p2=charIdx(plain[i+1]);
+    var c1=((M[0]*p1+M[1]*p2)%26),c2=((M[2]*p1+M[3]*p2)%26);
+    result+=idxChar(c1)+idxChar(c2);
+    rows+='<tr><td>'+plain[i]+plain[i+1]+'</td><td>['+p1+', '+p2+']</td>'
+      +'<td>'+M[0]+'·'+p1+' + '+M[1]+'·'+p2+' = '+((M[0]*p1+M[1]*p2)%26)+' | '+M[2]+'·'+p1+' + '+M[3]+'·'+p2+' = '+((M[2]*p1+M[3]*p2)%26)+'</td>'
+      +'<td style="font-weight:600;color:var(--indigo);">'+idxChar(c1)+idxChar(c2)+'</td></tr>';
+  }
+  var det=((K[0]*K[3]-K[1]*K[2])%26+26)%26;
+  var steps=beginSteps()
+   +sc('📐','Key Matrix','The 2×2 key matrix K is used to encrypt 2-letter blocks simultaneously using matrix multiplication.','K = [ '+K[0]+'  '+K[1]+' ]\n    [ '+K[2]+'  '+K[3]+' ]')
+   +sc('🧮',encrypt?'No Inverse Needed for Encryption':'Compute Matrix Inverse K⁻¹ mod 26',encrypt?'For encryption we use K directly. Decryption requires finding K⁻¹.':'det(K) = '+K[0]+'×'+K[3]+' − '+K[1]+'×'+K[2]+' = '+det+' (mod 26)\nK⁻¹ exists because gcd(det, 26) = 1\nK⁻¹ = [ '+Kinv[0]+'  '+Kinv[1]+' ]\n      [ '+Kinv[2]+'  '+Kinv[3]+' ]',null)
+   +sc('✖️','Matrix × Vector Multiplication','For each 2-letter block [P₁, P₂], multiply the matrix by the column vector:\n[ C₁ ]   [ m₀  m₁ ] [ P₁ ]\n[ C₂ ] = [ m₂  m₃ ] [ P₂ ]   (all values taken mod 26)','C₁ = m₀·P₁ + m₁·P₂ (mod 26)\nC₂ = m₂·P₁ + m₃·P₂ (mod 26)')
+   +sc('🔤','Convert to Letters','Map all output numbers (0-25) back to their corresponding alphabet letters.','Output: '+result)
+   +endSteps();
+  document.getElementById('hc_out').innerHTML=steps
+    +'<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Block</th><th>Vectors</th><th>Matrix Multiply</th><th>Output</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+    +'<div class="result-wrap'+(encrypt?'':' decrypt')+'"><div class="result-header">'+(encrypt?'Encrypted Ciphertext':'Decrypted Plaintext')+'</div><div class="result-big">'+result+'</div></div>';
+}
+
+/* ═══════════════════════════════════
+   PLAYFAIR
+═══════════════════════════════════ */
+var pfTable=[];
+function playfairBuild(){
+  var kw=toUpper(document.getElementById('pf_key').value)||'MONARCHY';
+  var seen={},seq=[];
+  (kw+'ABCDEFGHIKLMNOPQRSTUVWXYZ').split('').forEach(c=>{if(c==='J')c='I';if(!seen[c]){seen[c]=1;seq.push(c);}});
+  pfTable=seq.slice(0,25);
+  var grid=document.getElementById('pf_grid');grid.innerHTML='';
+  pfTable.forEach(c=>{var d=document.createElement('div');d.className='pf-cell';d.textContent=c;grid.appendChild(d);});
+}
+function pfPos(c){if(c==='J')c='I';var i=pfTable.indexOf(c);return[Math.floor(i/5),i%5];}
+function pfCell(r,col){return pfTable[r*5+col];}
+function playfairRun(encrypt){
+  var raw=toUpper(document.getElementById('pf_plain').value).replace(/J/g,'I');
+  if(!raw){document.getElementById('pf_out').innerHTML='<div class="warn-box">Enter plaintext!</div>';return;}
+  playfairBuild();
+  var dir=encrypt?1:-1;
+  var prepped=[];
+  for(var i=0;i<raw.length;){var a=raw[i];var b=raw[i+1]||'X';if(a===b){prepped.push([a,'X']);i++;}else{prepped.push([a,b]);i+=2;}}
+  if(!prepped.length){document.getElementById('pf_out').innerHTML='<div class="warn-box">No valid letters!</div>';return;}
+  var result='',rows='',rc={row:0,col:0,rect:0};
+  prepped.forEach(([a,b])=>{
+    var [ra,ca]=pfPos(a),[rb,cb]=pfPos(b),rule,ea,eb;
+    if(ra===rb){rule='Same Row';ea=pfCell(ra,(ca+dir+5)%5);eb=pfCell(rb,(cb+dir+5)%5);rc.row++;}
+    else if(ca===cb){rule='Same Col';ea=pfCell((ra+dir+5)%5,ca);eb=pfCell((rb+dir+5)%5,cb);rc.col++;}
+    else{rule='Rectangle';ea=pfCell(ra,cb);eb=pfCell(rb,ca);rc.rect++;}
+    result+=ea+eb;
+    rows+='<tr><td>'+a+b+'</td><td>('+ra+','+ca+') ('+rb+','+cb+')</td><td>'+rule+'</td><td style="font-weight:600;color:var(--indigo);">'+ea+eb+'</td></tr>';
+  });
+  var steps=beginSteps()
+   +sc('♟','Build the 5×5 Key Square','Fill the grid with keyword letters first (no duplicates, J treated as I), then the remaining alphabet letters.','Keyword: '+(document.getElementById('pf_key').value||'MONARCHY')+'\nGrid order: keyword → remaining A-Z (skipping J)')
+   +sc('✂️','Prepare Digraphs (Letter Pairs)','Split plaintext into 2-letter pairs. If a pair contains identical letters, insert X between them. Pad with X if total length is odd.','Pairs: '+prepped.map(p=>p.join('')).join(' '))
+   +sc('📏','Apply the Three Encryption Rules','Rule 1 — Same Row: each letter shifts right (+1) for encrypt, left (−1) for decrypt, wrapping around.\nRule 2 — Same Column: each letter shifts down (+1) for encrypt, up (−1) for decrypt, wrapping around.\nRule 3 — Rectangle: each letter moves to the corner of the rectangle in its own row.','Row×'+rc.row+'  Col×'+rc.col+'  Rectangle×'+rc.rect)
+   +sc('🔗','Concatenate Output','Join all encrypted/decrypted digraph pairs into the final result.','Output: '+result)
+   +endSteps();
+  document.getElementById('pf_out').innerHTML=steps
+    +'<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Digraph</th><th>Grid Positions</th><th>Rule Applied</th><th>Output</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+    +'<div class="result-wrap'+(encrypt?'':' decrypt')+'"><div class="result-header">'+(encrypt?'Encrypted Ciphertext':'Decrypted Plaintext')+'</div><div class="result-big">'+result+'</div></div>';
+}
+
+/* ═══════════════════════════════════
+   AES
+═══════════════════════════════════ */
+var AES_SBOX=[0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76,0xca,0x82,0xc9,0x7d,0xfa,0x59,0x47,0xf0,0xad,0xd4,0xa2,0xaf,0x9c,0xa4,0x72,0xc0,0xb7,0xfd,0x93,0x26,0x36,0x3f,0xf7,0xcc,0x34,0xa5,0xe5,0xf1,0x71,0xd8,0x31,0x15,0x04,0xc7,0x23,0xc3,0x18,0x96,0x05,0x9a,0x07,0x12,0x80,0xe2,0xeb,0x27,0xb2,0x75,0x09,0x83,0x2c,0x1a,0x1b,0x6e,0x5a,0xa0,0x52,0x3b,0xd6,0xb3,0x29,0xe3,0x2f,0x84,0x53,0xd1,0x00,0xed,0x20,0xfc,0xb1,0x5b,0x6a,0xcb,0xbe,0x39,0x4a,0x4c,0x58,0xcf,0xd0,0xef,0xaa,0xfb,0x43,0x4d,0x33,0x85,0x45,0xf9,0x02,0x7f,0x50,0x3c,0x9f,0xa8,0x51,0xa3,0x40,0x8f,0x92,0x9d,0x38,0xf5,0xbc,0xb6,0xda,0x21,0x10,0xff,0xf3,0xd2,0xcd,0x0c,0x13,0xec,0x5f,0x97,0x44,0x17,0xc4,0xa7,0x7e,0x3d,0x64,0x5d,0x19,0x73,0x60,0x81,0x4f,0xdc,0x22,0x2a,0x90,0x88,0x46,0xee,0xb8,0x14,0xde,0x5e,0x0b,0xdb,0xe0,0x32,0x3a,0x0a,0x49,0x06,0x24,0x5c,0xc2,0xd3,0xac,0x62,0x91,0x95,0xe4,0x79,0xe7,0xc8,0x37,0x6d,0x8d,0xd5,0x4e,0xa9,0x6c,0x56,0xf4,0xea,0x65,0x7a,0xae,0x08,0xba,0x78,0x25,0x2e,0x1c,0xa6,0xb4,0xc6,0xe8,0xdd,0x74,0x1f,0x4b,0xbd,0x8b,0x8a,0x70,0x3e,0xb5,0x66,0x48,0x03,0xf6,0x0e,0x61,0x35,0x57,0xb9,0x86,0xc1,0x1d,0x9e,0xe1,0xf8,0x98,0x11,0x69,0xd9,0x8e,0x94,0x9b,0x1e,0x87,0xe9,0xce,0x55,0x28,0xdf,0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16];
+function aesSimulate(){
+  var raw=document.getElementById('aes_plain').value;
+  var ks=parseInt(document.getElementById('aes_keysize').value);
+  if(!raw){document.getElementById('aes_out').innerHTML='<div class="warn-box">Enter plaintext (up to 16 characters).</div>';return;}
+  raw=raw.padEnd(16,' ');
+  var rounds=ks===128?10:ks===192?12:14;
+  var bytes=raw.slice(0,16).split('').map(c=>c.charCodeAt(0));
+  var state=[];for(var i=0;i<4;i++)state.push([bytes[i*4],bytes[i*4+1],bytes[i*4+2],bytes[i*4+3]]);
+  function stateGrid(s,label){
+    var cells=s.flat().map(v=>'<div class="matrix-cell">'+toHex2(v)+'</div>').join('');
+    return '<div><div class="matrix-label">'+label+'</div><div class="matrix" style="grid-template-columns:repeat(4,1fr);">'+cells+'</div></div>';
+  }
+  function subBytes(s){return s.map(r=>r.map(v=>AES_SBOX[v]));}
+  function shiftRows(s){return[s[0],[s[1][1],s[1][2],s[1][3],s[1][0]],[s[2][2],s[2][3],s[2][0],s[2][1]],[s[3][3],s[3][0],s[3][1],s[3][2]]];}
+  var s0=state.map(r=>[...r]);
+  var s1=subBytes(s0);
+  var s2=shiftRows(s1);
+  var out=beginSteps()
+   +sc('📦','Initial State — 4×4 Byte Matrix','The 16-byte plaintext is arranged column-by-column into a 4×4 state matrix. Each cell holds one byte (displayed in hexadecimal).','State bytes (hex): '+s0.flat().map(toHex2).join(' '))
+   +endSteps();
+  out+='<div class="matrix-wrap">'+stateGrid(s0,'Initial State')+'</div>';
+  out+=beginSteps();_stepN=1;
+  out+=sc('🔄','SubBytes — S-Box Substitution','Every byte is non-linearly replaced by looking it up in the AES S-Box (a 256-entry lookup table derived from the multiplicative inverse in GF(2⁸) composed with an affine transformation). This provides <strong>confusion</strong>.','S-Box[0x'+toHex2(s0[0][0])+'] = 0x'+toHex2(AES_SBOX[s0[0][0]])+' (first byte example)\nAll 16 bytes are substituted independently.');
+  out+=endSteps();
+  out+='<div class="matrix-wrap">'+stateGrid(s1,'After SubBytes')+'</div>';
+  out+=beginSteps();_stepN=2;
+  out+=sc('↔','ShiftRows — Cyclic Row Rotation','Each row is cyclically shifted left:\n  Row 0: no shift (0 positions)\n  Row 1: shift left by 1 position\n  Row 2: shift left by 2 positions\n  Row 3: shift left by 3 positions\nThis spreads bytes across different columns for diffusion.','Row shifts: [0, 1, 2, 3] positions left');
+  out+=endSteps();
+  out+='<div class="matrix-wrap">'+stateGrid(s2,'After ShiftRows')+'</div>';
+  out+=beginSteps();_stepN=3;
+  out+=sc('✖','MixColumns — Galois Field Multiplication','Each column is treated as a polynomial over GF(2⁸) and multiplied by a fixed polynomial c(x) = 3x³ + x² + x + 2. This mixes bytes within each column providing <strong>diffusion</strong>.','MixColumns matrix (over GF(2⁸)):\n[ 2  3  1  1 ]\n[ 1  2  3  1 ]\n[ 1  1  2  3 ]\n[ 3  1  1  2 ]')
+   +sc('🔑','AddRoundKey — XOR with Round Key','Each byte of the state is XOR\'d with the corresponding byte of the round key. The round key is derived from the original key via the Key Schedule.','State ⊕ RoundKey[i]  performed for each of the '+rounds+' rounds')
+   +sc('🔁',rounds+' Rounds Total — Progressive Scrambling','AES-'+ks+' applies '+rounds+' full rounds:\n  Rounds 1 to '+(rounds-1)+': SubBytes → ShiftRows → MixColumns → AddRoundKey\n  Round '+rounds+' (final): SubBytes → ShiftRows → AddRoundKey (no MixColumns)\nAfter all rounds, the data is indistinguishable from random noise.','Total transformations: '+rounds+' × 4 operations (minus 1 MixColumns in final round)')
+   +sc('📅','Key Schedule — Round Key Generation','The '+ks+'-bit key is expanded into '+(rounds+1)+' × 128-bit round keys using RotWord, SubWord (via S-Box), and XOR with round constants (Rcon).','Rcon[1..10] = [01, 02, 04, 08, 10, 20, 40, 80, 1B, 36] (hex)')
+   +endSteps();
+  out+='<div class="result-wrap"><div class="result-header">AES-'+ks+' Structure Summary</div><div class="result-big">AES-'+ks+' = Initial AddRoundKey\n+ '+(rounds-1)+' × {SubBytes → ShiftRows → MixColumns → AddRoundKey}\n+ 1 × {SubBytes → ShiftRows → AddRoundKey}\n\nBlock: 128-bit  ·  Key: '+ks+'-bit  ·  Rounds: '+rounds+'</div></div>';
+  document.getElementById('aes_out').innerHTML=out;
+}
+
+/* ═══════════════════════════════════
+   DES
+═══════════════════════════════════ */
+function desSimulate(){
+  var plain=document.getElementById('des_plain').value||'SECURITY';
+  var key=document.getElementById('des_key').value||'MYDESKEY';
+  plain=plain.padEnd(8,' ').slice(0,8);key=key.padEnd(8,' ').slice(0,8);
+  function strToBits(s){return s.split('').map(c=>(c.charCodeAt(0)>>>0).toString(2).padStart(8,'0')).join('');}
+  var ptBits=strToBits(plain);var keyBits=strToBits(key);
+  var IP_TABLE=[58,50,42,34,26,18,10,2,60,52,44,36,28,20,12,4,62,54,46,38,30,22,14,6,64,56,48,40,32,24,16,8,57,49,41,33,25,17,9,1,59,51,43,35,27,19,11,3,61,53,45,37,29,21,13,5,63,55,47,39,31,23,15,7];
+  function applyPerm(bits,table){return table.map(i=>bits[i-1]).join('');}
+  var ipResult=applyPerm(ptBits,IP_TABLE);
+  var L=ipResult.slice(0,32),R=ipResult.slice(32,64);
+  var PC1=[57,49,41,33,25,17,9,1,58,50,42,34,26,18,10,2,59,51,43,35,27,19,11,3,60,52,44,36,63,55,47,39,31,23,15,7,62,54,46,38,30,22,14,6,61,53,45,37,29,21,13,5,28,20,12,4];
+  var keyPC1=applyPerm(keyBits,PC1);
+  var shifts=[1,1,2,2,2,2,2,2,1,2,2,2,2,2,2,1];
+  var bitGrid=ptBits.split('').map(b=>'<span class="bit '+(b==='1'?'b1':'b0')+'">'+b+'</span>').join('');
+  var out=beginSteps()
+   +sc('🔢','Convert to 64-Bit Binary','Both plaintext "'+plain+'" and key "'+key+'" are converted to 64-bit binary strings (8 bytes × 8 bits each).','Plaintext bits: '+ptBits.slice(0,32)+'...')
+   +endSteps();
+  out+='<div class="hash-display" style="margin-top:16px;"><div class="hash-label">Plaintext bits (64-bit):</div><div class="bit-grid">'+bitGrid+'</div></div>';
+  out+=beginSteps();_stepN=1;
+  out+=sc('🔀','Initial Permutation (IP)','The 64-bit plaintext is permuted using the IP table — a fixed rearrangement of all 64 bit positions. This does not add cryptographic security; it was included for hardware implementation efficiency.\nThe result is split: L₀ = left 32 bits, R₀ = right 32 bits.','IP rearranges positions: 58→1, 50→2, 42→3, ...\nL₀ = '+L.slice(0,16)+'...\nR₀ = '+R.slice(0,16)+'...')
+   +sc('🔑','Key Schedule — 16 Subkeys from PC-1','PC-1 permutation reduces 64-bit key to 56 effective bits (drops parity bits 8,16,24,32,40,48,56,64).\nSplit into C₀ (28 bits) and D₀ (28 bits).\nFor each round i (1-16): rotate Cᵢ and Dᵢ left by ['+shifts.join(', ')+'] bits,\nthen apply PC-2 to extract 48-bit subkey Kᵢ.','16 subkeys, each 48 bits — used in rounds 1 through 16')
+   +sc('🔁','16 Feistel Rounds — Core Structure','Each round computes:\n  1. E(Rᵢ): expand Rᵢ from 32→48 bits using E-table (some bits repeated)\n  2. XOR with subkey Kᵢ (48 bits)\n  3. 8 × S-boxes: 6-bit input → 4-bit output (48→32 bits)\n  4. P permutation: rearrange the 32 bits\n  5. Lᵢ₊₁ = Rᵢ,  Rᵢ₊₁ = Lᵢ ⊕ f(Rᵢ, Kᵢ)\n\nFor decryption: same structure, subkeys applied in reverse order (K₁₆..K₁).','f(R, K) = P(S-Boxes(E(R) ⊕ K))')
+   +sc('📦','S-Box Substitution — Source of DES Non-linearity','The XOR result is split into 8 groups of 6 bits.\nEach group selects an entry from its corresponding S-box:\n  · Row = outer bits (bit 1 and bit 6) → value 0-3\n  · Column = inner bits (bits 2-5) → value 0-15\n  · S-box output: 4 bits\n8 × 4 bits = 32 bits total output.','Example S₁: row=01 (bits 1,6), col=0101 (bits 2-5) → look up S₁[1][5]')
+   +sc('🔚','Final Permutation (FP = IP⁻¹)','After all 16 rounds, swap L₁₆ and R₁₆ to get the pre-output block R₁₆∥L₁₆,\nthen apply FP (the exact inverse of IP) to produce the 64-bit ciphertext.','FP = IP⁻¹  →  FP(IP(x)) = x for all x\n⚠ DES is obsolete — brutable in under 24 hours. Use AES!')
+   +endSteps();
+  out+='<div class="result-wrap"><div class="result-header">DES Structure Summary</div><div class="result-big">DES = IP → 16 Feistel Rounds → Swap → FP\n\nKey: 64-bit input → 56-bit effective → 16 × 48-bit subkeys\nBlock: 64-bit plaintext → 64-bit ciphertext\n\n⚠ DES is obsolete. Brute-forced in &lt;24h. Use AES-256.</div></div>';
+  document.getElementById('des_out').innerHTML=out;
+}
+
+/* ═══════════════════════════════════
+   RSA
+═══════════════════════════════════ */
+var RSA={p:0,q:0,n:0,phi:0,e:0,d:0,enc:[],ready:false};
+function rsaPopulateE(phi){
+  var div=document.getElementById('rsa_ediv');
+  if(!div){div=document.createElement('div');div.id='rsa_ediv';div.className='ctrl-box';div.innerHTML='<label class="field-label">Public Exponent e</label><select class="inp" id="rsa_e" onchange="rsaRun()"></select>';document.getElementById('rsa_out').insertAdjacentElement('beforebegin',div);}
+  var sel=document.getElementById('rsa_e');sel.innerHTML='';
+  var c=0;for(var e=2;e<phi&&c<12;e++)if(gcd(e,phi)===1){var o=document.createElement('option');o.value=e;o.textContent=e;sel.appendChild(o);c++;}
+}
+function rsaRun(){
+  var p=parseInt(document.getElementById('rsa_p').value);
+  var q=parseInt(document.getElementById('rsa_q').value);
+  if(p===q){document.getElementById('rsa_out').innerHTML='<div class="warn-box">p and q must be different primes!</div>';return;}
+  var n=p*q,phi=(p-1)*(q-1);
+  rsaPopulateE(phi);
+  var esel=document.getElementById('rsa_e');if(!esel)return;
+  var e=parseInt(esel.value);if(!e||gcd(e,phi)!==1)return;
+  var d=modInv(e,phi);
+  RSA={p,q,n,phi,e,d,enc:[],ready:true};
+  var msg=document.getElementById('rsa_msg').value||'HI';
+  var enc=[],rows='';
+  for(var i=0;i<msg.length;i++){
+    var ascii=msg.charCodeAt(i);if(ascii>=n)continue;
+    var c=modpow(ascii,e,n);enc.push(c);
+    rows+='<tr><td>'+(msg[i]===' '?'[sp]':msg[i])+'</td><td>'+ascii+'</td><td>'+ascii+'^'+e+' mod '+n+'</td><td style="font-weight:600;color:var(--indigo);">'+c+'</td></tr>';
+  }
+  RSA.enc=enc;
+  var out=beginSteps()
+   +sc('🌱','Choose Two Distinct Prime Numbers','Select primes p and q. Their product n must be large enough that all message character codes are less than n (so mod n doesn\'t lose information).','p = '+p+'   q = '+q+'   n = p × q = '+n)
+   +sc('✖','Compute the Modulus n','n = p × q is the RSA modulus. It appears in both the public and private keys and can be shared publicly. Factoring n back into p and q is computationally infeasible for large primes.','n = '+p+' × '+q+' = '+n)
+   +sc('📐','Compute Euler\'s Totient φ(n)','φ(n) = (p−1)(q−1) counts how many integers from 1 to n-1 are coprime with n. For two primes: (p−1)(q−1). This value must remain SECRET.','φ('+n+') = ('+p+'−1)('+q+'−1) = '+phi)
+   +sc('🔑','Choose Public Exponent e','e must satisfy: 1 < e < φ(n) and gcd(e, φ(n)) = 1. Together (e, n) forms the PUBLIC KEY — shared with everyone.','e = '+e+'   gcd('+e+', '+phi+') = '+gcd(e,phi)+' ✓   →   Public Key: (e='+e+', n='+n+')')
+   +sc('🔐','Compute Private Key d','d is the modular multiplicative inverse of e modulo φ(n), computed via the Extended Euclidean Algorithm:\nd × e ≡ 1 (mod φ(n)). This is the PRIVATE KEY — never shared.','d = '+d+'   verify: '+d+' × '+e+' mod '+phi+' = '+((BigInt(d)*BigInt(e))%BigInt(phi))+' ≡ 1 ✓   →   Private Key: (d='+d+', n='+n+')')
+   +sc('🔒','Encrypt — Apply Public Key','For each character: convert to ASCII value M, then compute ciphertext C = M^e mod n using the public key (e, n).','C = M^'+e+' mod '+n)
+   +endSteps();
+  out+='<div class="key-card"><div class="key-section pub"><div class="key-section-title">🌿 Public Key — Share Freely</div><div class="key-row"><span class="kl">e =</span><span class="kv">'+e+'</span></div><div class="key-row"><span class="kl">n =</span><span class="kv">'+n+'</span></div></div><div class="key-section priv"><div class="key-section-title">🔒 Private Key — Keep Secret</div><div class="key-row"><span class="kl">d =</span><span class="kv">'+d+'</span></div><div class="key-row"><span class="kl">n =</span><span class="kv">'+n+'</span></div></div></div>';
+  out+='<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Char</th><th>ASCII (M)</th><th>Formula</th><th>Ciphertext (C)</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  out+='<div class="result-wrap"><div class="result-header">Encrypted Ciphertext Numbers</div><div class="result-big">'+enc.join(', ')+'</div></div>';
+  document.getElementById('rsa_out').innerHTML=out;
+}
+function rsaDecrypt(){
+  if(!RSA.ready||!RSA.enc.length){document.getElementById('rsa_out').innerHTML='<div class="warn-box">Encrypt something first using the button above.</div>';return;}
+  var rows='',dec='';
+  RSA.enc.forEach(c=>{var m=modpow(c,RSA.d,RSA.n);var ch=String.fromCharCode(m);dec+=ch;rows+='<tr><td>'+c+'</td><td>'+c+'^'+RSA.d+' mod '+RSA.n+'</td><td>'+m+'</td><td style="font-weight:600;color:var(--sage);">'+ch+'</td></tr>';});
+  var out=beginSteps()
+   +sc('🔓','Decrypt — Apply Private Key','For each ciphertext number C, compute M = C^d mod n using the private key (d, n). The result is the original ASCII character code.','M = C^'+RSA.d+' mod '+RSA.n)
+   +sc('📐','Why Decryption Works — Euler\'s Theorem','By Euler\'s theorem: M^φ(n) ≡ 1 (mod n) for gcd(M, n)=1.\nSince d × e ≡ 1 (mod φ(n)), we have:\n(M^e)^d = M^(e·d) = M^(k·φ(n)+1) = M · (M^φ(n))^k ≡ M (mod n)','(M^e)^d ≡ M^(e·d mod φ(n)) ≡ M^1 ≡ M (mod n) ✓')
+   +endSteps();
+  out+='<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Cipher (C)</th><th>Formula</th><th>ASCII (M)</th><th>Character</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  out+='<div class="result-wrap decrypt"><div class="result-header">Decrypted Message</div><div class="result-big">'+dec+'</div></div>';
+  out+='<div class="success-box">✓ RSA Decryption Successful — Recovered: "'+dec+'"</div>';
+  document.getElementById('rsa_out').innerHTML=document.getElementById('rsa_out').innerHTML+out;
+}
+
+/* ═══════════════════════════════════
+   DIFFIE-HELLMAN
+═══════════════════════════════════ */
+function dhRun(){
+  var p=parseInt(document.getElementById('dh_p').value);
+  var g=parseInt(document.getElementById('dh_g').value);
+  var a=parseInt(document.getElementById('dh_a').value)||6;
+  var b=parseInt(document.getElementById('dh_b').value)||15;
+  if(a<=1||b<=1||a>=p||b>=p){document.getElementById('dh_out').innerHTML='<div class="warn-box">Private keys must be between 2 and p−1.</div>';return;}
+  var A=modpow(g,a,p);var B=modpow(g,b,p);
+  var sA=modpow(B,a,p);var sB=modpow(A,b,p);
+  var steps=beginSteps()
+   +sc('📢','Agree on Public Parameters','Alice and Bob publicly agree on two values visible to everyone:\n  · p = '+p+' (a large prime number — the modulus)\n  · g = '+g+' (a primitive root modulo p — the generator)\nThese values provide no advantage to an attacker.','Public parameters: p='+p+', g='+g+'  (visible to all)')
+   +sc('🔒','Each Party Selects a Secret Private Key','Alice secretly chooses: a = '+a+'\nBob secretly chooses: b = '+b+'\nThese values are NEVER transmitted or shared — they exist only in memory.','Alice: a='+a+' (secret)   Bob: b='+b+' (secret)')
+   +sc('📤','Compute and Exchange Public Keys','Each party computes their public key using modular exponentiation and sends it over the (insecure) channel:\nAlice → Bob:  A = g^a mod p = '+g+'^'+a+' mod '+p+' = '+A+'\nBob → Alice:  B = g^b mod p = '+g+'^'+b+' mod '+p+' = '+B,'A='+A+' (public)   B='+B+' (public)  — attacker sees both!')
+   +sc('🤝','Independently Compute the Shared Secret','Using the received public key and own private key:\nAlice: s = B^a mod p = '+B+'^'+a+' mod '+p+' = '+sA+'\nBob:   s = A^b mod p = '+A+'^'+b+' mod '+p+' = '+sB+'\nBoth arrive at the same value because B^a = (g^b)^a = g^(ab) = (g^a)^b = A^b','s = g^(ab) mod p = '+sA)
+   +sc('🛡','Security — The Discrete Logarithm Problem','The attacker sees: g='+g+', p='+p+', A='+A+', B='+B+'\nTo recover the secret, they need either:\n  · a such that g^a ≡ '+A+' (mod '+p+') — Discrete Log Problem\n  · The secret g^(ab) mod p without knowing a or b — Computational DH Problem\nFor large p (2048+ bits in practice), this is computationally infeasible.','Security ← Hardness of DLP in ℤ*_p')
+   +endSteps();
+  var dhCards='<div class="dh-row">'
+    +'<div class="dh-box"><div class="dh-title">👩 Alice</div>'
+    +'<div class="field-label" style="margin-bottom:4px;">Private key (secret)</div><div class="dh-val">a = '+a+'</div>'
+    +'<div class="field-label" style="margin-bottom:4px;margin-top:12px;">Public key (sent to Bob)</div><div class="dh-val">A = g^a mod p = '+A+'</div>'
+    +'<div class="field-label" style="margin-bottom:4px;margin-top:12px;">Shared secret computed</div><div class="dh-val" style="color:var(--sage2);font-weight:700;">s = B^a mod p = '+sA+'</div></div>'
+    +'<div class="dh-box"><div class="dh-title">👨 Bob</div>'
+    +'<div class="field-label" style="margin-bottom:4px;">Private key (secret)</div><div class="dh-val">b = '+b+'</div>'
+    +'<div class="field-label" style="margin-bottom:4px;margin-top:12px;">Public key (sent to Alice)</div><div class="dh-val">B = g^b mod p = '+B+'</div>'
+    +'<div class="field-label" style="margin-bottom:4px;margin-top:12px;">Shared secret computed</div><div class="dh-val" style="color:var(--sage2);font-weight:700;">s = A^b mod p = '+sB+'</div></div></div>';
+  var result=sA===sB
+    ?'<div class="success-box">✓ Key Exchange Successful!  Shared Secret s = '+sA+'  —  This secret is now used as a symmetric key (e.g., for AES-256 encryption).</div>'
+    :'<div class="warn-box">Secret mismatch — check your inputs.</div>';
+  document.getElementById('dh_out').innerHTML=steps+dhCards+result;
+}
+
+/* ═══════════════════════════════════
+   MD5
+═══════════════════════════════════ */
+function md5(str){
+  function safeAdd(x,y){var lsw=(x&0xffff)+(y&0xffff);var msw=(x>>16)+(y>>16)+(lsw>>16);return(msw<<16)|(lsw&0xffff);}
+  function bitRotateLeft(num,cnt){return(num<<cnt)|(num>>>(32-cnt));}
+  function md5cmn(q,a,b,x,s,t){return safeAdd(bitRotateLeft(safeAdd(safeAdd(a,q),safeAdd(x,t)),s),b);}
+  function md5ff(a,b,c,d,x,s,t){return md5cmn((b&c)|((~b)&d),a,b,x,s,t);}
+  function md5gg(a,b,c,d,x,s,t){return md5cmn((b&d)|(c&(~d)),a,b,x,s,t);}
+  function md5hh(a,b,c,d,x,s,t){return md5cmn(b^c^d,a,b,x,s,t);}
+  function md5ii(a,b,c,d,x,s,t){return md5cmn(c^(b|(~d)),a,b,x,s,t);}
+  var bytes=[];for(var i=0;i<str.length;i++){var c=str.charCodeAt(i);if(c<128)bytes.push(c);else if(c<2048){bytes.push((c>>6)|192);bytes.push((c&63)|128);}else{bytes.push((c>>12)|224);bytes.push(((c>>6)&63)|128);bytes.push((c&63)|128);}}
+  var nBytes=bytes.length;bytes.push(0x80);while(bytes.length%64!==56)bytes.push(0);var bitLen=nBytes*8;bytes.push(bitLen&0xff);bytes.push((bitLen>>8)&0xff);bytes.push((bitLen>>16)&0xff);bytes.push((bitLen>>24)&0xff);bytes.push(0);bytes.push(0);bytes.push(0);bytes.push(0);
+  var a0=0x67452301,b0=0xefcdab89,c0=0x98badcfe,d0=0x10325476;
+  for(var blk=0;blk<bytes.length;blk+=64){var M=[];for(var j=0;j<16;j++)M.push(bytes[blk+j*4]|(bytes[blk+j*4+1]<<8)|(bytes[blk+j*4+2]<<16)|(bytes[blk+j*4+3]<<24));var A=a0,B=b0,C=c0,D=d0;A=md5ff(A,B,C,D,M[0],7,-680876936);D=md5ff(D,A,B,C,M[1],12,-389564586);C=md5ff(C,D,A,B,M[2],17,606105819);B=md5ff(B,C,D,A,M[3],22,-1044525330);A=md5ff(A,B,C,D,M[4],7,-176418897);D=md5ff(D,A,B,C,M[5],12,1200080426);C=md5ff(C,D,A,B,M[6],17,-1473231341);B=md5ff(B,C,D,A,M[7],22,-45705983);A=md5ff(A,B,C,D,M[8],7,1770035416);D=md5ff(D,A,B,C,M[9],12,-1958414417);C=md5ff(C,D,A,B,M[10],17,-42063);B=md5ff(B,C,D,A,M[11],22,-1990404162);A=md5ff(A,B,C,D,M[12],7,1804603682);D=md5ff(D,A,B,C,M[13],12,-40341101);C=md5ff(C,D,A,B,M[14],17,-1502002290);B=md5ff(B,C,D,A,M[15],22,1236535329);A=md5gg(A,B,C,D,M[1],5,-165796510);D=md5gg(D,A,B,C,M[6],9,-1069501632);C=md5gg(C,D,A,B,M[11],14,643717713);B=md5gg(B,C,D,A,M[0],20,-373897302);A=md5gg(A,B,C,D,M[5],5,-701558691);D=md5gg(D,A,B,C,M[10],9,38016083);C=md5gg(C,D,A,B,M[15],14,-660478335);B=md5gg(B,C,D,A,M[4],20,-405537848);A=md5gg(A,B,C,D,M[9],5,568446438);D=md5gg(D,A,B,C,M[14],9,-1019803690);C=md5gg(C,D,A,B,M[3],14,-187363961);B=md5gg(B,C,D,A,M[8],20,1163531501);A=md5gg(A,B,C,D,M[13],5,-1444681467);D=md5gg(D,A,B,C,M[2],9,-51403784);C=md5gg(C,D,A,B,M[7],14,1735328473);B=md5gg(B,C,D,A,M[12],20,-1926607734);A=md5hh(A,B,C,D,M[5],4,-378558);D=md5hh(D,A,B,C,M[8],11,-2022574463);C=md5hh(C,D,A,B,M[11],16,1839030562);B=md5hh(B,C,D,A,M[14],23,-35309556);A=md5hh(A,B,C,D,M[1],4,-1530992060);D=md5hh(D,A,B,C,M[4],11,1272893353);C=md5hh(C,D,A,B,M[7],16,-155497632);B=md5hh(B,C,D,A,M[10],23,-1094730640);A=md5hh(A,B,C,D,M[13],4,681279174);D=md5hh(D,A,B,C,M[0],11,-358537222);C=md5hh(C,D,A,B,M[3],16,-722521979);B=md5hh(B,C,D,A,M[6],23,76029189);A=md5hh(A,B,C,D,M[9],4,-640364487);D=md5hh(D,A,B,C,M[12],11,-421815835);C=md5hh(C,D,A,B,M[15],16,530742520);B=md5hh(B,C,D,A,M[2],23,-995338651);A=md5ii(A,B,C,D,M[0],6,-198630844);D=md5ii(D,A,B,C,M[7],10,1126891415);C=md5ii(C,D,A,B,M[14],15,-1416354905);B=md5ii(B,C,D,A,M[5],21,-57434055);A=md5ii(A,B,C,D,M[12],6,1700485571);D=md5ii(D,A,B,C,M[3],10,-1894986606);C=md5ii(C,D,A,B,M[10],15,-1051523);B=md5ii(B,C,D,A,M[1],21,-2054922799);A=md5ii(A,B,C,D,M[8],6,1873313359);D=md5ii(D,A,B,C,M[15],10,-30611744);C=md5ii(C,D,A,B,M[6],15,-1560198380);B=md5ii(B,C,D,A,M[13],21,1309151649);A=md5ii(A,B,C,D,M[4],6,-145523070);D=md5ii(D,A,B,C,M[11],10,-1120210379);C=md5ii(C,D,A,B,M[2],15,718787259);B=md5ii(B,C,D,A,M[9],21,-343485551);a0=safeAdd(A,a0);b0=safeAdd(B,b0);c0=safeAdd(C,c0);d0=safeAdd(D,d0);}
+  function toHexStr(n){var s='',v;for(var i=0;i<4;i++){v=(n>>>(i*8))&0xff;s+=('0'+v.toString(16)).slice(-2);}return s;}
+  return toHexStr(a0)+toHexStr(b0)+toHexStr(c0)+toHexStr(d0);
+}
+function md5Simulate(){
+  var inp=document.getElementById('md5_in').value;
+  if(!inp){document.getElementById('md5_out').innerHTML='<div class="warn-box">Enter a message first.</div>';return;}
+  var hash=md5(inp);
+  var bitLen=inp.length*8;
+  var paddedLen=Math.ceil((bitLen+65)/512)*512;
+  var out=beginSteps()
+   +sc('📥','Message Padding','The message is padded to a multiple of 512 bits using the Merkle–Damgård construction:\n  1. Append a single "1" bit\n  2. Append "0" bits until length ≡ 448 (mod 512)\n  3. Append original message length as 64-bit little-endian integer','Input: "'+inp+'" = '+bitLen+' bits\nAfter padding: '+paddedLen+' bits ('+Math.ceil(paddedLen/512)+' block'+((paddedLen/512>1)?'s':'')+')')
+   +sc('🏁','Initialize Four State Variables','MD5 maintains 128 bits of state as four 32-bit registers (A, B, C, D) initialized to fixed magic constants derived from the fractional parts of integer square roots.','A = 0x67452301\nB = 0xEFCDAB89\nC = 0x98BADCFE\nD = 0x10325476')
+   +sc('🔄','Four Rounds × 16 Operations = 64 Operations Per Block','For each 512-bit block, apply 64 operations using four non-linear functions:\n  Round 1 — F(B,C,D) = (B∧C)∨(¬B∧D)\n  Round 2 — G(B,C,D) = (B∧D)∨(C∧¬D)\n  Round 3 — H(B,C,D) = B⊕C⊕D\n  Round 4 — I(B,C,D) = C⊕(B∨¬D)\nEach operation: a = b + LeftRotate(a + F(b,c,d) + M[k] + T[i], s)','T[i] = floor(2³² × |sin(i)|) for i=1..64  (constants derived from sine)')
+   +sc('📋','Message Word Indexing','The 512-bit block is split into 16 × 32-bit words M[0..15].\nEach of the 64 operations uses a word from M in a specific non-sequential order that differs per round.','Round 1 index: k = i\nRound 2 index: k = (5i+1) mod 16\nRound 3 index: k = (3i+5) mod 16\nRound 4 index: k = (7i) mod 16')
+   +sc('💾','Finalize — Produce 128-bit Digest','After all blocks: add final A,B,C,D to their initial values (mod 2³²).\nOutput the four registers concatenated as little-endian 32-bit words = 128-bit (32 hex character) digest.','MD5("'+inp+'") = '+hash)
+   +endSteps();
+  out+='<div class="hash-display"><div class="hash-label">MD5 Digest (128-bit / 32 hex chars)</div><div class="hash-val">'+hash+'</div></div>';
+  out+='<div class="ribbon">⚠ Security Warning: MD5 is cryptographically broken. Collision attacks have been demonstrated (Wang et al., 2004). Do not use MD5 for security-critical applications. Use SHA-256 or SHA-3.</div>';
+  document.getElementById('md5_out').innerHTML=out;
+}
+
+/* ═══════════════════════════════════
+   SHA-256
+═══════════════════════════════════ */
+function sha256(str){
+  var K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  var H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  function rotr(n,x){return(x>>>n)|(x<<(32-n));}
+  function Ch(x,y,z){return(x&y)^(~x&z);}function Maj(x,y,z){return(x&y)^(x&z)^(y&z);}
+  function S0(x){return rotr(2,x)^rotr(13,x)^rotr(22,x);}function S1(x){return rotr(6,x)^rotr(11,x)^rotr(25,x);}
+  function s0(x){return rotr(7,x)^rotr(18,x)^(x>>>3);}function s1(x){return rotr(17,x)^rotr(19,x)^(x>>>10);}
+  var bytes=[];for(var i=0;i<str.length;i++){var c=str.charCodeAt(i);if(c<128)bytes.push(c);else if(c<2048){bytes.push((c>>6)|192);bytes.push((c&63)|128);}else{bytes.push((c>>12)|224);bytes.push(((c>>6)&63)|128);bytes.push((c&63)|128);}}
+  var origLen=bytes.length;bytes.push(0x80);while(bytes.length%64!==56)bytes.push(0);var bitLen=origLen*8;for(var i=7;i>=0;i--)bytes.push((bitLen/Math.pow(2,i*8))&0xff);
+  for(var blk=0;blk<bytes.length;blk+=64){var W=[];for(var i=0;i<16;i++)W.push((bytes[blk+i*4]<<24)|(bytes[blk+i*4+1]<<16)|(bytes[blk+i*4+2]<<8)|bytes[blk+i*4+3]);for(var i=16;i<64;i++)W.push((s1(W[i-2])+W[i-7]+s0(W[i-15])+W[i-16])|0);var [a,b,c,d,e,f,g,h]=H;for(var i=0;i<64;i++){var T1=(h+S1(e)+Ch(e,f,g)+K[i]+W[i])|0;var T2=(S0(a)+Maj(a,b,c))|0;h=g;g=f;f=e;e=(d+T1)|0;d=c;c=b;b=a;a=(T1+T2)|0;}H[0]=(H[0]+a)|0;H[1]=(H[1]+b)|0;H[2]=(H[2]+c)|0;H[3]=(H[3]+d)|0;H[4]=(H[4]+e)|0;H[5]=(H[5]+f)|0;H[6]=(H[6]+g)|0;H[7]=(H[7]+h)|0;}
+  return H.map(v=>(v>>>0).toString(16).padStart(8,'0')).join('');
+}
+function sha256Simulate(){
+  var inp=document.getElementById('sha_in').value;
+  if(!inp){document.getElementById('sha_out').innerHTML='<div class="warn-box">Enter a message first.</div>';return;}
+  var hash=sha256(inp);
+  var bitLen=inp.length*8;var paddedLen=Math.ceil((bitLen+65)/512)*512;
+  var initH=['6a09e667','bb67ae85','3c6ef372','a54ff53a','510e527f','9b05688c','1f83d9ab','5be0cd19'];
+  var out=beginSteps()
+   +sc('📥','Message Padding','SHA-256 uses the same Merkle–Damgård padding as MD5 but in big-endian byte order:\n  1. Append a single "1" bit\n  2. Append "0" bits until length ≡ 448 (mod 512)\n  3. Append original message length as 64-bit BIG-ENDIAN integer','Input: "'+inp+'" = '+bitLen+' bits → padded to '+paddedLen+' bits')
+   +sc('🏁','Initialize Eight 32-bit Hash Values H₀..H₇','SHA-256 uses 256 bits of state as eight 32-bit variables initialized to the fractional parts of the square roots of the first 8 prime numbers (2, 3, 5, 7, 11, 13, 17, 19).','H₀='+initH[0]+'  H₁='+initH[1]+'  H₂='+initH[2]+'  H₃='+initH[3]+'\nH₄='+initH[4]+'  H₅='+initH[5]+'  H₆='+initH[6]+'  H₇='+initH[7])
+   +sc('📋','64 Round Constants K[0..63]','64 fixed constants derived from the fractional parts of the cube roots of the first 64 prime numbers.\nK[0]=0x428a2f98, K[1]=0x71374491, ...K[63]=0xc67178f2\nThese constants ensure different behavior in each round.','K values provide mathematical rigidity — no two rounds are alike')
+   +sc('🔀','Message Schedule Expansion W[0..63]','The 512-bit block provides W[0..15] (16 × 32-bit words).\nW[16..63] are computed iteratively:\n  W[i] = σ₁(W[i-2]) + W[i-7] + σ₀(W[i-15]) + W[i-16]\n\n  σ₀(x) = ROTR⁷(x) ⊕ ROTR¹⁸(x) ⊕ SHR³(x)\n  σ₁(x) = ROTR¹⁷(x) ⊕ ROTR¹⁹(x) ⊕ SHR¹⁰(x)','Each W[i] depends on 4 earlier words, creating complex inter-dependencies')
+   +sc('🔄','64 Compression Rounds — Core SHA-256 Loop','Initialize working variables: a,b,c,d,e,f,g,h ← H₀..H₇\nFor i = 0 to 63:\n  T₁ = h + Σ₁(e) + Ch(e,f,g) + K[i] + W[i]\n  T₂ = Σ₀(a) + Maj(a,b,c)\n  h←g, g←f, f←e, e←d+T₁, d←c, c←b, b←a, a←T₁+T₂\n\n  Σ₀ = ROTR²⊕ROTR¹³⊕ROTR²²,   Σ₁ = ROTR⁶⊕ROTR¹¹⊕ROTR²⁵\n  Ch(e,f,g) = (e∧f)⊕(¬e∧g)   — "choose" function\n  Maj(a,b,c) = (a∧b)⊕(a∧c)⊕(b∧c) — "majority" function','64 rounds × 8 state variables updated per round')
+   +sc('💾','Finalize — Produce 256-bit Digest','Add final working variables to initial hash values (mod 2³²):\n  H₀ ← H₀+a,  H₁ ← H₁+b, ..., H₇ ← H₇+h\nConcatenate H₀..H₇ = 8 × 32-bit = 256-bit (64 hex char) digest.','SHA-256("'+inp+'") =\n'+hash.match(/.{16}/g).join('\n'))
+   +endSteps();
+  out+='<div class="hash-display"><div class="hash-label">SHA-256 Digest (256-bit / 64 hex chars)</div><div class="hash-val">'+hash+'</div></div>';
+  out+='<div class="success-box">✓ SHA-256 is cryptographically secure. No known practical collision attacks. Widely used in TLS/HTTPS, Bitcoin, digital signatures, password hashing (with salt), and code integrity verification.</div>';
+  document.getElementById('sha_out').innerHTML=out;
+}
+
+/* ═══════════════════════════════════
+   COMPARE
+═══════════════════════════════════ */
+function compareHash(){
+  var inp=document.getElementById('cmp_in').value;
+  if(!inp){document.getElementById('cmp_out').innerHTML='';return;}
+  var h1=md5(inp);var h2=sha256(inp);
+  var inp2=inp.slice(0,-1)+String.fromCharCode(inp.charCodeAt(inp.length-1)+1);
+  var h1b=md5(inp2);var h2b=sha256(inp2);
+  function diffCount(a,b){var n=0;for(var i=0;i<Math.min(a.length,b.length);i++)if(a[i]!==b[i])n++;return n;}
+  var d1=diffCount(h1,h1b),d2=diffCount(h2,h2b);
+  var out='<div class="cmp-grid">'
+    +'<div class="cmp-box"><div class="cmp-title" style="color:var(--amber);">⚠ MD5 (128-bit)</div>'
+    +'<div class="field-label" style="margin-bottom:4px;">Input: "'+inp+'"</div><div class="cmp-hash">'+h1+'</div>'
+    +'<div class="field-label" style="margin-bottom:4px;margin-top:10px;">Changed to: "'+inp2+'"</div><div class="cmp-hash" style="color:var(--copper2);">'+h1b+'</div>'
+    +'<div class="hint-txt" style="margin-top:6px;">Hex chars changed: '+d1+'/32 ('+Math.round(d1/32*100)+'%) — Avalanche</div>'
+    +'<div class="hint-txt">⚠ Broken: practical collisions exist</div></div>'
+    +'<div class="cmp-box"><div class="cmp-title" style="color:var(--sage);">✓ SHA-256 (256-bit)</div>'
+    +'<div class="field-label" style="margin-bottom:4px;">Input: "'+inp+'"</div><div class="cmp-hash">'+h2+'</div>'
+    +'<div class="field-label" style="margin-bottom:4px;margin-top:10px;">Changed to: "'+inp2+'"</div><div class="cmp-hash" style="color:var(--sage2);">'+h2b+'</div>'
+    +'<div class="hint-txt" style="margin-top:6px;">Hex chars changed: '+d2+'/64 ('+Math.round(d2/64*100)+'%) — Avalanche</div>'
+    +'<div class="hint-txt">✓ Secure: no practical collisions known</div></div></div>';
+  out+=beginSteps()
+   +sc('📊','MD5 vs SHA-256 — Key Differences','Output: MD5 = 128-bit (32 hex chars)  vs  SHA-256 = 256-bit (64 hex chars)\nState:  MD5 = 4 × 32-bit registers  vs  SHA-256 = 8 × 32-bit registers\nRounds: MD5 = 4 rounds × 16 ops  vs  SHA-256 = 64 compression rounds\nSpeed:  MD5 is faster but insecure  vs  SHA-256 is slower but secure\nSecurity: MD5 = collision attacks found  vs  SHA-256 = no practical attack known','MD5: 2⁶⁴ collision resistance  |  SHA-256: 2¹²⁸ collision resistance')
+   +sc('🌊','Avalanche Effect Demonstrated','Changing a single character in the input completely transforms the hash output. A secure hash function should flip approximately 50% of all output bits for any single input bit change.','MD5 avalanche:    '+d1+'/32 chars ('+Math.round(d1/32*100)+'%)\nSHA-256 avalanche: '+d2+'/64 chars ('+Math.round(d2/64*100)+'%)\nBoth demonstrate strong avalanche properties.')
+   +sc('🛡','When to Use Each','Use MD5 ONLY for: non-security checksums, file deduplication, hash tables (fast lookup)\nNEVER use MD5 for: passwords, digital signatures, data integrity in security contexts\n\nUse SHA-256 for: passwords (with bcrypt/scrypt), TLS certificates, Bitcoin mining, code signing, HMAC authentication','Recommended: SHA-256, SHA-3, BLAKE3 for all security-critical applications')
+   +endSteps();
+  document.getElementById('cmp_out').innerHTML=out;
+}
+
+/* INIT */
+playfairBuild();
+hillPreset();
+caesarRun();
+</script>
+</body>
+</html>
